@@ -1,1 +1,130 @@
 hello world this is a test
+$Nodename = $args[0]
+Write-Host $Nodename
+$sRawString = Get-Content "D:\Infragenie\Unix_CPU_Alerts\properties.ini" | Out-String
+$sStringToConvert = $sRawString -replace '\\', '\\'
+$Properties = ConvertFrom-StringData $sStringToConvert
+
+
+
+$SourceServer=$Properties.'SourceServer'
+$DestinationServer=$Properties.'DestinationServer'
+$OSPatrolFile=$Properties.'OSPatrolFile'
+$InputFile=$Properties.'inputFile'
+$OutputFile=$Properties.'outputfile'
+$OutputFileCSV= $Properties.'outputfilecsv'
+$ProcessResult= $Properties.'ProcessResult'
+$ProcessResultCSV= $Properties.'ProcessResultCSV'
+
+write-host $ProcessResult
+
+Copy-Item -Path $SourceServer -Destination $DestinationServer
+
+
+$Hostname = @()
+$HostnameOS= @()
+$SeversfromTextFile = @()
+
+<#
+#taking servers from text file 
+$GetServer=Get-Content -Path $InputFile 
+for ($i=0;$i -lt $GetServer.Count ; $i++){
+
+        $SeversfromTextFile += $GetServer[$i]
+}
+#>
+
+#$OsServers = Get-Content -Path $OSPatrolServers
+#Write-Host $OsServers
+
+$PatrolServers = Import-Csv $OSPatrolFile | select 'Patrol Agent Hostname'
+$OperatingSystem=Import-Csv $OSPatrolFile |select "OS"
+$OperatingSystem=$OperatingSystem.'OS'
+$PatrolServers = $PatrolServers.'Patrol Agent Hostname'
+$OperatingSystem.Count
+$PatrolServers.Count
+for ($i = 0; $i -lt $PatrolServers.Count; $i++){
+   
+    $string = $PatrolServers[$i]
+    $seperator = "."
+    $parts = $string.split($seperator)
+    $Hostname += $parts[0]
+    $HostnameOS +=  $OperatingSystem[$i]
+    
+}
+#Write-Host $HostnameOS
+$testing = $Hostname.Contains($Nodename)
+
+#clavidap6681
+if ($Hostname.Contains($Nodename)){
+   
+    $index= $Hostname.IndexOf($Nodename)
+  
+    $OS = $HostnameOS[$index]
+    
+    if($OS -eq "Linux"){
+        #Code to be change
+        $password = Get-Content D:\Linux_Automation_key\password.txt | ConvertTo-SecureString -Key (Get-Content  D:\Linux_Automation_key\aes.key)
+        $value = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($password ))))
+        #echo y | plink $Nodename -P 2222 -l Patrol -pw $value "ps -eo pid,ppid,command,user,%mem,%cpu --sort=-%cpu | head" > $ProcessResult
+        echo y | plink $Nodename -P 2222 -l Patrol -pw $value "ps -eo command,user,%mem,%cpu --sort=-%cpu | head" > $ProcessResult
+        #echo y | plink $Nodename -P 2222 -l Patrol -pw $value "ps -eo command,user,%mem,%cpu --sort=-%cpu | head" > $ProcessResult
+        #carrepme7711.bolt.alight.com
+        #clavidap6681
+        
+    }
+    import-csv $ProcessResult -delimiter "`t" | export-csv $ProcessResultCSV
+    $content = Get-Content $ProcessResult
+    $count = 0
+    $target = 2
+    
+    foreach ($line in $content) {
+        $count += 1
+        if ($count -eq $target) {
+            $line
+            #$line1 = $line -replace ' {1,}', "," |Out-File $ProcessResultCSV
+            $line1 = $line  |Out-File $ProcessResultCSV
+            $temp = Get-Content $ProcessResultCSV
+            #Write-Host $temp
+            $temp = $temp.Replace("/","")
+            $temp.length
+            $temp2 = $temp.Substring($temp.Length - 18,18)
+            $temp2 = $temp2 -replace ' {1,}', ","
+            $User_Process = $temp2.Substring(0,$temp2.IndexOf(","))
+            $User_Process
+            #$temp.Substring(19,21)
+            #$line[17,22]
+            #$line.substring(9,19)
+            #$line1 = $line -replace ' {1,}', ","
+            #Write-Host $line1
+            #$line1.substring(20,22)
+            #$line -replace '`\s`\s+', ","
+            #write-host $line.GetType()
+            break
+        }
+    }
+       
+        
+}
+
+<#
+
+Checkpoint
+1. consider the bolt servers
+
+#>
+
+
+
+
+
+SourceServer=\\l98wad52\D$\MonitoringReports\Scripts\MonitoringReports\patrol_agents.csv
+DestinationServer=D:\Infragenie\Unix_CPU_Alerts
+OSPatrolFile=D:\Infragenie\Unix_CPU_Alerts\patrol_agents.csv
+inputFile=D:\Infragenie\Unix_CPU_Alerts\input.txt
+outputfile=D:\Infragenie\Unix_CPU_Alerts\output.txt
+outputfilecsv=D:\Infragenie\Unix_CPU_Alerts\output.csv
+ProcessResult=D:\Infragenie\Unix_CPU_Alerts\result.txt
+ProcessResultCSV=D:\Infragenie\Unix_CPU_Alerts\resultcsv.txt
+
+
