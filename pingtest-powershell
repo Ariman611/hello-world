@@ -1,0 +1,13 @@
+
+$servelist =  Import-Csv -Path "H:\ping automation\serverlist.txt" -Header server
+
+for ($i = 0; $i -lt $servelist.count ;  $i++ ){
+    if (Test-Connection $servelist[$i].server -Quiet) {
+        write-host $servelist[$i].server "is Working"
+        Add-Content -Path "H:\ping automation\Working.txt" -value $servelist[$i].server
+    }else{
+        write-host $servelist[$i].server "is not Working"
+        Add-Content -Path "H:\ping automation\notWorking.txt" -value $servelist[$i].server
+    }
+
+}
